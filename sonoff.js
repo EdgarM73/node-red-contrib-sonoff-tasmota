@@ -13,22 +13,22 @@ module.exports = function (RED) {
         // Topics
         var topicTeleLWT = `${config.telePrefix}/${config.device}/LWT`;
 
-        var topicCmdPower = `${config.cmdPrefix}/${config.device}/power`;
+        var topicCmdPower = `${config.cmdPrefix}/${config.device}/${config.channel}`;
         var topicCmdStatus = `${config.cmdPrefix}/${config.device}/status`;
 
-        var topicStatsPower = `${config.statPrefix}/${config.device}/POWER`;
+        var topicStatsPower = `${config.statPrefix}/${config.device}/${config.channel}`;
         var topicStatsStatus = `${config.statPrefix}/${config.device}/STATUS`;
 
         if(config.mode == 1){ //Custom (%topic%/%prefix%/)
             topicTeleLWT = `${config.device}/${config.telePrefix}/LWT`;
 
-            topicCmdPower = `${config.device}/${config.cmdPrefix}/power`;
+            topicCmdPower = `${config.device}/${config.cmdPrefix}/${config.channel}`;
             topicCmdStatus = `${config.device}/${config.cmdPrefix}/status`;
 
-            topicStatsPower = `${config.device}/${config.statPrefix}/POWER`;
+            topicStatsPower = `${config.device}/${config.statPrefix}/${config.channel}`;
             topicStatsStatus = `${config.device}/${config.statPrefix}/STATUS`;
         }
-
+this.trace('topic ' + topicCmdPower);
         if (brokerConnection) {
             brokerConnection.register(this);
             this.status({fill: 'yellow', shape: 'dot', text: 'Connecting...'});
@@ -45,15 +45,18 @@ module.exports = function (RED) {
             });
 
             brokerConnection.subscribe(topicStatsStatus, 2, (topic, payload) => {
+this.trace('status ' + payload);
                 const stringPayload = payload.toString();
                 debug('Topic: %s, Value: %s', topic, stringPayload);
                 try {
                     const jsonPayload = JSON.parse(stringPayload);
                     if (jsonPayload.Status.Power === 1) {
                         this.status({fill: 'green', shape: 'dot', text: 'On'});
+this.trace('send ' + true);
                         this.send({payload: true});
                     } else {
                         this.status({fill: 'grey', shape: 'dot', text: 'Off'});
+this.trace('send ' + false);
                         this.send({payload: false});
                     }
                 } catch (err) {
@@ -65,14 +68,17 @@ module.exports = function (RED) {
             // Subscribes if the state of the device changes
             brokerConnection.subscribe(topicStatsPower, 2, (topic, payload) => {
                 const stringPayload = payload.toString();
+this.trace('power ' + stringPayload);
                 debug('Topic: %s, Value: %s', topic, stringPayload);
 
                 if (stringPayload === config.onValue) {
                     this.status({fill: 'green', shape: 'dot', text: 'On'});
+this.trace('send ' + true);
                     this.send({payload: true});
                 }
                 if (stringPayload === config.offValue) {
                     this.status({fill: 'grey', shape: 'dot', text: 'Off'});
+this.trace('send ' + false);
                     this.send({payload: false});
                 }
             });
@@ -81,15 +87,18 @@ module.exports = function (RED) {
             this.on('input', msg => {
                 debug('INPUT: %s', JSON.stringify(msg));
                 const payload = msg.payload;
+this.trace('input ' + payload)
 
                 // We handle boolean, the onValue and msg.On to support homekit
                 if (payload === true || payload === config.onValue) {
                     brokerConnection.client.publish(topicCmdPower, config.onValue, {qos: 0, retain: false});
+this.trace('send ' + config.onValue);
                     this.send({payload: true});
                 }
 
                 if (payload === false || payload === config.offValue) {
                     brokerConnection.client.publish(topicCmdPower, config.offValue, {qos: 0, retain: false});
+this.trace('send ' + config.offValue);
                     this.send({payload: false});
                 }
             });
