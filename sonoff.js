@@ -28,7 +28,15 @@ module.exports = function (RED) {
             topicStatsPower = `${config.device}/${config.statPrefix}/${config.channel}`;
             topicStatsStatus = `${config.device}/${config.statPrefix}/STATUS`;
         }
-this.trace('topic ' + topicCmdPower);
+
+        const channelNameToNumber = {
+            "POWER": 0,
+            "POWER1": 0,
+            "POWER2": 1,
+            "POWER3": 2,
+            "POWER4": 3
+        };
+
         if (brokerConnection) {
             brokerConnection.register(this);
             this.status({fill: 'yellow', shape: 'dot', text: 'Connecting...'});
@@ -45,18 +53,16 @@ this.trace('topic ' + topicCmdPower);
             });
 
             brokerConnection.subscribe(topicStatsStatus, 2, (topic, payload) => {
-this.trace('status ' + payload);
                 const stringPayload = payload.toString();
                 debug('Topic: %s, Value: %s', topic, stringPayload);
                 try {
                     const jsonPayload = JSON.parse(stringPayload);
-                    if (jsonPayload.Status.Power === 1) {
+                    // Power value is a binary encoded number which we have to search for our channel
+                    if ((jsonPayload.Status.Power & Math.pow(2, channelNameToNumber[config.channel])) != 0) {
                         this.status({fill: 'green', shape: 'dot', text: 'On'});
-this.trace('send ' + true);
                         this.send({payload: true});
                     } else {
                         this.status({fill: 'grey', shape: 'dot', text: 'Off'});
-this.trace('send ' + false);
                         this.send({payload: false});
                     }
                 } catch (err) {
@@ -68,17 +74,14 @@ this.trace('send ' + false);
             // Subscribes if the state of the device changes
             brokerConnection.subscribe(topicStatsPower, 2, (topic, payload) => {
                 const stringPayload = payload.toString();
-this.trace('power ' + stringPayload);
                 debug('Topic: %s, Value: %s', topic, stringPayload);
 
                 if (stringPayload === config.onValue) {
                     this.status({fill: 'green', shape: 'dot', text: 'On'});
-this.trace('send ' + true);
                     this.send({payload: true});
                 }
                 if (stringPayload === config.offValue) {
                     this.status({fill: 'grey', shape: 'dot', text: 'Off'});
-this.trace('send ' + false);
                     this.send({payload: false});
                 }
             });
@@ -87,18 +90,15 @@ this.trace('send ' + false);
             this.on('input', msg => {
                 debug('INPUT: %s', JSON.stringify(msg));
                 const payload = msg.payload;
-this.trace('input ' + payload)
 
                 // We handle boolean, the onValue and msg.On to support homekit
                 if (payload === true || payload === config.onValue) {
                     brokerConnection.client.publish(topicCmdPower, config.onValue, {qos: 0, retain: false});
-this.trace('send ' + config.onValue);
                     this.send({payload: true});
                 }
 
                 if (payload === false || payload === config.offValue) {
                     brokerConnection.client.publish(topicCmdPower, config.offValue, {qos: 0, retain: false});
-this.trace('send ' + config.offValue);
                     this.send({payload: false});
                 }
             });
