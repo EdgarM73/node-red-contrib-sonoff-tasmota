@@ -33,6 +33,20 @@ module.exports = function (RED) {
             topicStatsStatus = `${config.device}/${config.statPrefix}/STATUS`;
         }
 
+        // add Multi-Channel Support for up to 8-Channel
+        const channelNameToNumber = {
+            "POWER": 0, // for single Channel Devices
+            "POWER1": 0,
+            "POWER2": 1,
+            "POWER3": 2,
+            "POWER4": 3,
+            "POWER5": 4,
+            "POWER6": 5,
+            "POWER7": 6,
+            "POWER8": 7
+        };
+
+        
         if (brokerConnection) {
             brokerConnection.register(this);
             this.status({
@@ -65,7 +79,8 @@ module.exports = function (RED) {
                 debug('Topic: %s, Value: %s', topic, stringPayload);
                 try {
                     const jsonPayload = JSON.parse(stringPayload);
-                    if (jsonPayload.Status.Power === 1) {
+                    // Power value is a binary encoded number which we have to search for our channel
+                    if ((jsonPayload.Status.Power & Math.pow(2, channelNameToNumber[config.channel])) != 0) {
                         this.status({
                             fill: 'green',
                             shape: 'dot',

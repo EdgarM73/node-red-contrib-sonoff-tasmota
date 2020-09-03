@@ -4,6 +4,7 @@
         color: '#28AFB0',
         defaults: {
             mode:{ value: '0'},
+            channel:{ value: 'POWER', required: true},
             broker: { type: 'mqtt-broker', required: true },
             device: { value: 'sonoff', required: true },
             name: { value: ''},
@@ -24,7 +25,22 @@
     </script>
     
     <script type="text/x-red" data-template-name="Sonoff device Enhanced">
-        <div class="form-row">
+       <div class="form-row">
+           <label for="node-input-channel"><i class="fa fa-exchange"></i><span> Channel</span></label>>
+           <select type="text" id="node-input-channel" style="width:70%;">
+               <option value="POWER">POWER (single channel modules)</option>
+               <option value="POWER1">POWER1</option>
+               <option value="POWER2">POWER2</option>
+               <option value="POWER3">POWER3</option>
+               <option value="POWER4">POWER4</option>
+               <option value="POWER5">POWER5</option>
+               <option value="POWER6">POWER6</option>
+               <option value="POWER7">POWER7</option>
+               <option value="POWER8">POWER8</option>
+           </select>
+       </div>
+
+       <div class="form-row">
             <label for="node-input-mode"><i class="fa fa-wrench"></i><span> Mode</span></label>
             <select type="text" id="node-input-mode" style="width:70%;">            
                 <option value="0">%prefix%/%topic%/</option>
